@@ -1,7 +1,6 @@
 import logging
 import os
 import sys
-import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -40,25 +39,26 @@ def main():
         db = DatabaseManager()
         bot = Notifier()
 
-        # 1. Ingest
-        raw_instruments = t212.fetch_instruments()
-        isa_universe = t212.filter_instruments(raw_instruments)
+        # 1. Cache Check + Ingest
+        isa_universe = t212.get_universe()
 
-        logging.info(f"Starting scan for {len(isa_universe)} stocks...")
+        logging.info("Preparing scan universe for %s stocks...", len(isa_universe))
 
+        tickers = []
         for inst in isa_universe:
             yf_ticker = scanner.clean_ticker(inst.ticker)
-            
             if db.is_blacklisted(yf_ticker) or db.was_alerted_recently(yf_ticker):
                 continue
+            tickers.append(yf_ticker)
 
-            # 2. Scan (with rate limiting)
-            signal = scanner.scan_ticker(yf_ticker)
-            if signal:
-                bot.send_alert(signal)
-                db.record_signal(yf_ticker, signal['entry'])
-            
-            time.sleep(2) # Protect against YFinance IP block
+        unique_tickers = sorted(set(tickers))
+        logging.info("Starting batch scan for %s stocks...", len(unique_tickers))
+
+        # 2. Batch Scan
+        signals = scanner.scan_universe(unique_tickers)
+        for signal in signals:
+            bot.send_alert(signal)
+            db.record_signal(signal["ticker"], signal["entry"])
 
     except Exception:
         logging.exception("FATAL ERROR")

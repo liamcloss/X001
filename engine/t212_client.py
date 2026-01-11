@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import base64
+import json
 import logging
 import os
 import time
 from dataclasses import dataclass
-import base64
+from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, Dict, Iterable, List
+
 import requests
 
 def require(*names: str) -> None:
@@ -120,16 +124,75 @@ class Trading212Client:
 
         return {"NYSE", "NASDAQ", "LSE", "XETRA"}
 
+    @staticmethod
+    def working_schedule_exchange_map() -> Dict[str, str]:
+        """Map Trading 212 working schedule IDs to exchange labels."""
+
+        return {
+            "US_EQUITY": "NYSE/NASDAQ",
+            "LSE_EQUITY": "LSE",
+            "XETRA_EQUITY": "XETRA",
+        }
+
+    def _normalize_schedule_id(self, value: Any) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, dict):
+            nested = value.get("id") or value.get("name")
+            return self._normalize_schedule_id(nested)
+        return str(value).upper()
+
+    def _infer_exchange(self, instrument: Dict[str, Any]) -> str | None:
+        schedule_map = self.working_schedule_exchange_map()
+        schedule_id = self._normalize_schedule_id(
+            instrument.get("workingScheduleId")
+            or instrument.get("workingScheduleID")
+            or instrument.get("workingSchedule")
+            or instrument.get("scheduleId")
+            or instrument.get("scheduleID")
+        )
+        if not schedule_id:
+            schedule_id = ""
+        if schedule_id in schedule_map:
+            return schedule_map[schedule_id]
+        for key, label in schedule_map.items():
+            if key in schedule_id:
+                return label
+        if "LSE" in schedule_id:
+            return "LSE"
+        if "XETRA" in schedule_id or "XETR" in schedule_id or "XET" in schedule_id:
+            return "XETRA"
+        if "US" in schedule_id or "NYSE" in schedule_id or "NASDAQ" in schedule_id:
+            return "NYSE/NASDAQ"
+
+        ticker = (instrument.get("ticker") or instrument.get("symbol") or "").upper()
+        if "_LSE" in ticker:
+            return "LSE"
+        if "_XETRA" in ticker or "_XET" in ticker or "_XETR" in ticker:
+            return "XETRA"
+        if "_US" in ticker or "_NYSE" in ticker or "_NASDAQ" in ticker:
+            return "NYSE/NASDAQ"
+        return None
+
     def filter_instruments(self, instruments: List[Dict[str, Any]]) -> List[Instrument]:
         """Filter instruments for equities and ISA-compliant exchanges."""
 
         filtered: List[Instrument] = []
-        allowed_exchanges = self.isa_exchanges()
+        unknown_schedules: Dict[str, int] = {}
         for instrument in instruments:
             if instrument.get("type") != "EQUITY":
                 continue
-            exchange = instrument.get("exchange")
-            if exchange not in allowed_exchanges:
+            exchange = self._infer_exchange(instrument)
+            if not exchange:
+                schedule_id = self._normalize_schedule_id(
+                    instrument.get("workingScheduleId")
+                    or instrument.get("workingScheduleID")
+                    or instrument.get("workingSchedule")
+                    or instrument.get("scheduleId")
+                    or instrument.get("scheduleID")
+                )
+                if schedule_id:
+                    unknown_schedules[schedule_id] = unknown_schedules.get(schedule_id, 0) + 1
                 continue
             ticker = instrument.get("ticker") or instrument.get("symbol")
             name = instrument.get("name", "Unknown")
@@ -144,4 +207,66 @@ class Trading212Client:
                 )
             )
         LOGGER.info("Filtered %s ISA-eligible equities", len(filtered))
+        if not filtered and unknown_schedules:
+            top_unknown = sorted(unknown_schedules.items(), key=lambda item: item[1], reverse=True)[:5]
+            LOGGER.warning("Unknown workingScheduleId values: %s", top_unknown)
+        return filtered
+
+    def _cache_valid(self, cache_path: Path, max_age_days: int) -> bool:
+        if not cache_path.exists():
+            return False
+        modified_time = datetime.fromtimestamp(cache_path.stat().st_mtime)
+        return datetime.now() - modified_time < timedelta(days=max_age_days)
+
+    def _load_cached_universe(self, cache_path: Path) -> List[Instrument]:
+        with cache_path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        return [
+            Instrument(
+                ticker=item["ticker"],
+                name=item["name"],
+                exchange=item["exchange"],
+                instrument_type=item.get("instrument_type", "EQUITY"),
+            )
+            for item in payload
+        ]
+
+    def _save_cached_universe(self, cache_path: Path, instruments: List[Instrument]) -> None:
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = [
+            {
+                "ticker": inst.ticker,
+                "name": inst.name,
+                "exchange": inst.exchange,
+                "instrument_type": inst.instrument_type,
+            }
+            for inst in instruments
+        ]
+        with cache_path.open("w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2)
+
+    def get_universe(
+        self,
+        cache_path: str = "data/universe.json",
+        max_age_days: int = 7,
+    ) -> List[Instrument]:
+        """Return the cached universe, refreshing from the API when stale."""
+
+        cache_file = Path(cache_path)
+        if self._cache_valid(cache_file, max_age_days):
+            LOGGER.info("Loading cached universe from %s", cache_file)
+            cached = self._load_cached_universe(cache_file)
+            if cached:
+                return cached
+            LOGGER.warning("Cached universe was empty; refreshing from Trading 212.")
+
+        LOGGER.info("Refreshing universe cache from Trading 212")
+        raw_instruments = self.fetch_instruments()
+        filtered = self.filter_instruments(raw_instruments)
+        if filtered:
+            self._save_cached_universe(cache_file, filtered)
+        else:
+            LOGGER.warning(
+                "Universe filter returned 0 instruments; cache not updated."
+            )
         return filtered
