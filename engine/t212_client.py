@@ -8,16 +8,7 @@ import time
 from dataclasses import dataclass
 import base64
 from typing import Any, Dict, Iterable, List
-from pathlib import Path
-
 import requests
-
-from dotenv import load_dotenv
-
-ROOT = Path(__file__).resolve().parents[1]
-ENV_FILE = ROOT / ".env"
-
-load_dotenv(ENV_FILE)
 
 def require(*names: str) -> None:
     missing = [n for n in names if not os.getenv(n)]

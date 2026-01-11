@@ -32,10 +32,11 @@ class DatabaseManager:
         """
         Checks if we've already signaled this ticker in the last 3 weeks.
         3 weeks (21 days) matches your 3-4 week swing trade window.
+        Signal timestamps use ISO format to match how they are stored.
         """
         # If we alerted on this ticker recently, we don't want to see it again
         # until the typical swing trade duration has passed.
-        since = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
+        since = (datetime.now() - timedelta(days=days)).isoformat()
         with sqlite3.connect(self.db_path) as conn:
             res = conn.execute(
                 "SELECT 1 FROM signals WHERE ticker = ? AND date > ?",
