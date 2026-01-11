@@ -134,6 +134,15 @@ class Trading212Client:
             "XETRA_EQUITY": "XETRA",
         }
 
+    @staticmethod
+    def _exchange_aliases() -> Dict[str, str]:
+        return {
+            "NYSE": "NYSE/NASDAQ",
+            "NASDAQ": "NYSE/NASDAQ",
+            "LSE": "LSE",
+            "XETRA": "XETRA",
+        }
+
     def _normalize_schedule_id(self, value: Any) -> str | None:
         if value is None:
             return None
@@ -143,6 +152,13 @@ class Trading212Client:
         return str(value).upper()
 
     def _infer_exchange(self, instrument: Dict[str, Any]) -> str | None:
+        exchange_aliases = self._exchange_aliases()
+        raw_exchange = self._normalize_schedule_id(
+            instrument.get("exchange") or instrument.get("exchangeId")
+        )
+        if raw_exchange in exchange_aliases:
+            return exchange_aliases[raw_exchange]
+
         schedule_map = self.working_schedule_exchange_map()
         schedule_id = self._normalize_schedule_id(
             instrument.get("workingScheduleId")
