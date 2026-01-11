@@ -1,7 +1,10 @@
+import logging
 import yfinance as yf
 import pandas as pd
 import numpy as np
 import time
+
+LOGGER = logging.getLogger(__name__)
 
 class AlphaScanner:
     def __init__(self, target_upside=0.25):
@@ -69,5 +72,6 @@ class AlphaScanner:
                     "news": news_text
                 }
         except Exception:
+            LOGGER.exception("Scan failed for %s", ticker)
             return None
         return None
