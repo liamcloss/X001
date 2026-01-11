@@ -1,8 +1,9 @@
 import logging
-import yfinance as yf
-import pandas as pd
-import numpy as np
 import time
+
+import numpy as np
+import pandas as pd
+import yfinance as yf
 
 LOGGER = logging.getLogger(__name__)
 
@@ -13,10 +14,20 @@ class AlphaScanner:
     def clean_ticker(self, t212_ticker: str) -> str:
         """Maps T212 ticker format to YFinance format."""
         # Example: AAPL_US_EQ -> AAPL | VOD_LSE_EQ -> VOD.L
-        parts = t212_ticker.split('_')
+        if t212_ticker.endswith((".L", ".DE")):
+            return t212_ticker
+        parts = t212_ticker.split("_")
         symbol = parts[0]
-        if "LSE" in t212_ticker: return f"{symbol}.L"
-        if "XETRA" in t212_ticker: return f"{symbol}.DE"
+        if len(parts) > 1:
+            market = parts[1]
+            if market == "LSE":
+                return f"{symbol}.L"
+            if market == "XETRA":
+                return f"{symbol}.DE"
+        if "LSE" in t212_ticker:
+            return f"{symbol}.L"
+        if "XETRA" in t212_ticker:
+            return f"{symbol}.DE"
         return symbol
 
     def calculate_atr(self, df, window=14):
@@ -27,20 +38,23 @@ class AlphaScanner:
         true_range = np.max(ranges, axis=1)
         return true_range.rolling(window=window).mean()
 
-    def scan_ticker(self, ticker):
+    def _scan_dataframe(self, ticker, df):
         try:
-            df = yf.download(ticker, period="1y", interval="1d", progress=False)
-            if len(df) < 200: return None
+            if len(df) < 200:
+                return None
 
             # 1. Liquidity Filter (> £500k avg volume)
             avg_vol_value = (df['Close'] * df['Volume']).tail(20).mean()
-            if avg_vol_value < 500000: return None
+            if avg_vol_value < 500000:
+                return None
 
             # 2. Strategy: Momentum Igniter
             # Price > 200 SMA, RSI crossing 50, Vol > 2x Avg
             sma200 = df['Close'].rolling(200).mean().iloc[-1]
             current_price = df['Close'].iloc[-1]
-            
+            if current_price < sma200:
+                return None
+
             # RSI Logic
             delta = df['Close'].diff()
             gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
@@ -75,3 +89,33 @@ class AlphaScanner:
             LOGGER.exception("Scan failed for %s", ticker)
             return None
         return None
+
+    def _extract_ticker_frame(self, data, ticker):
+        if isinstance(data.columns, pd.MultiIndex):
+            if ticker not in data.columns.get_level_values(0):
+                return None
+            frame = data[ticker].dropna(how="all")
+            return frame
+        return data.dropna(how="all")
+
+    def scan_universe(self, tickers, batch_size=100, pause_seconds=1):
+        signals = []
+        for start in range(0, len(tickers), batch_size):
+            batch = tickers[start:start + batch_size]
+            LOGGER.info("Downloading batch %s-%s (%s tickers)", start + 1, start + len(batch), len(batch))
+            data = yf.download(
+                tickers=" ".join(batch),
+                period="1y",
+                interval="1d",
+                group_by="ticker",
+                progress=False,
+            )
+            for ticker in batch:
+                frame = self._extract_ticker_frame(data, ticker)
+                if frame is None or frame.empty:
+                    continue
+                signal = self._scan_dataframe(ticker, frame)
+                if signal:
+                    signals.append(signal)
+            time.sleep(pause_seconds)
+        return signals
