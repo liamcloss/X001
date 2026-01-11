@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import sqlite3
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, List
 
@@ -75,7 +75,7 @@ def init_db() -> None:
 def upsert_universe(instruments: Iterable[Instrument]) -> None:
     """Insert or update the trading universe."""
 
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with sqlite3.connect(DB_PATH) as conn:
         conn.executemany(
             """
@@ -140,7 +140,7 @@ def run_pipeline() -> None:
     scanner = Scanner(capital=1000.0)
     signals = scanner.scan(tickers)
 
-    today = datetime.utcnow().date().isoformat()
+    today = datetime.now(timezone.utc).date().isoformat()
     for signal in signals:
         if already_signaled(signal.ticker, today):
             LOGGER.info("Skipping duplicate signal for %s", signal.ticker)
@@ -163,7 +163,7 @@ if __name__ == "__main__":
         run_pipeline()
     except Exception as exc:  # noqa: BLE001 - global safety net
         CRASH_LOG.write_text(
-            f"{datetime.utcnow().isoformat()} - Fatal error: {exc}\n",
+            f"{datetime.now(timezone.utc).isoformat()} - Fatal error: {exc}\n",
             encoding="utf-8",
         )
         try:
