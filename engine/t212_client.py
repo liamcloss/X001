@@ -80,7 +80,7 @@ class Trading212Client:
     """Client for Trading 212 universe ingestion."""
 
     def __init__(self) -> None:
-        self.base_url = "https://live.trading212.com/api/v1"
+        self.base_url = "https://live.trading212.com/api/v0"
         self.api_key = os.getenv("T212_API_KEY")
         self.trading_secret = os.getenv("T212_TRADING_SECRET")
         if not self.api_key or not self.trading_secret:

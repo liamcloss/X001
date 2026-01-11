@@ -23,13 +23,6 @@ class DatabaseManager:
                                (ticker, datetime.now().isoformat())).fetchone()
             return res is not None
 
-    def was_alerted_recently(self, ticker, days=7):
-        since = (datetime.now() - timedelta(days=days)).isoformat()
-        with sqlite3.connect(self.db_path) as conn:
-            res = conn.execute("SELECT 1 FROM signals WHERE ticker = ? AND date > ?",
-                               (ticker, since)).fetchone()
-            return res is not None
-
     def record_signal(self, ticker, price):
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("INSERT OR REPLACE INTO signals VALUES (?, ?, ?)",

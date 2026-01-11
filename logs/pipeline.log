@@ -1,0 +1,54 @@
+2026-01-11 20:07:42,522 - INFO - Fetching instruments from Trading 212
+2026-01-11 20:07:42,885 - WARNING - API call failed on attempt 1: 404 Client Error: Not Found for url: https://live.trading212.com/api/v1/equity/metadata/instruments. Retrying in 1.0s
+2026-01-11 20:07:43,887 - INFO - Fetching instruments from Trading 212
+2026-01-11 20:07:44,144 - WARNING - API call failed on attempt 2: 404 Client Error: Not Found for url: https://live.trading212.com/api/v1/equity/metadata/instruments. Retrying in 2.0s
+2026-01-11 20:07:46,145 - INFO - Fetching instruments from Trading 212
+2026-01-11 20:07:46,414 - WARNING - API call failed on attempt 3: 404 Client Error: Not Found for url: https://live.trading212.com/api/v1/equity/metadata/instruments. Retrying in 4.0s
+2026-01-11 20:07:50,417 - INFO - Fetching instruments from Trading 212
+2026-01-11 20:07:50,688 - WARNING - API call failed on attempt 4: 404 Client Error: Not Found for url: https://live.trading212.com/api/v1/equity/metadata/instruments. Retrying in 8.0s
+2026-01-11 20:07:58,688 - INFO - Fetching instruments from Trading 212
+2026-01-11 20:07:58,956 - ERROR - API call failed after 5 attempts
+Traceback (most recent call last):
+  File "C:\Users\liamc\PycharmProjects\X001\engine\t212_client.py", line 49, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\liamc\PycharmProjects\X001\engine\t212_client.py", line 105, in fetch_instruments
+    response.raise_for_status()
+  File "C:\Users\liamc\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\requests\models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 404 Client Error: Not Found for url: https://live.trading212.com/api/v1/equity/metadata/instruments
+2026-01-11 20:07:58,968 - ERROR - FATAL ERROR: 404 Client Error: Not Found for url: https://live.trading212.com/api/v1/equity/metadata/instruments
+2026-01-11 20:12:16,320 - INFO - Fetching instruments from Trading 212
+2026-01-11 20:12:16,607 - WARNING - API call failed on attempt 1: 404 Client Error: Not Found for url: https://live.trading212.com/api/v1/equity/metadata/instruments. Retrying in 1.0s
+2026-01-11 20:12:17,609 - INFO - Fetching instruments from Trading 212
+2026-01-11 20:12:17,874 - WARNING - API call failed on attempt 2: 404 Client Error: Not Found for url: https://live.trading212.com/api/v1/equity/metadata/instruments. Retrying in 2.0s
+2026-01-11 20:12:19,875 - INFO - Fetching instruments from Trading 212
+2026-01-11 20:12:20,156 - WARNING - API call failed on attempt 3: 404 Client Error: Not Found for url: https://live.trading212.com/api/v1/equity/metadata/instruments. Retrying in 4.0s
+2026-01-11 20:12:24,158 - INFO - Fetching instruments from Trading 212
+2026-01-11 20:12:24,431 - WARNING - API call failed on attempt 4: 404 Client Error: Not Found for url: https://live.trading212.com/api/v1/equity/metadata/instruments. Retrying in 8.0s
+2026-01-11 20:12:32,432 - INFO - Fetching instruments from Trading 212
+2026-01-11 20:12:32,704 - ERROR - API call failed after 5 attempts
+Traceback (most recent call last):
+  File "C:\Users\liamc\PycharmProjects\X001\engine\t212_client.py", line 49, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\liamc\PycharmProjects\X001\engine\t212_client.py", line 105, in fetch_instruments
+    response.raise_for_status()
+  File "C:\Users\liamc\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\requests\models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 404 Client Error: Not Found for url: https://live.trading212.com/api/v1/equity/metadata/instruments
+2026-01-11 20:12:32,705 - ERROR - FATAL ERROR: 404 Client Error: Not Found for url: https://live.trading212.com/api/v1/equity/metadata/instruments
+2026-01-11 20:20:42,103 - INFO - Fetching instruments from Trading 212
+2026-01-11 20:20:43,361 - WARNING - API call failed on attempt 1: 404 Client Error: Not Found for url: https://live.trading212.com/api/v1/equity/metadata/instruments. Retrying in 1.0s
+2026-01-11 20:20:44,363 - INFO - Fetching instruments from Trading 212
+2026-01-11 20:20:44,623 - WARNING - API call failed on attempt 2: 404 Client Error: Not Found for url: https://live.trading212.com/api/v1/equity/metadata/instruments. Retrying in 2.0s
+2026-01-11 20:20:46,624 - INFO - Fetching instruments from Trading 212
+2026-01-11 20:20:46,885 - WARNING - API call failed on attempt 3: 404 Client Error: Not Found for url: https://live.trading212.com/api/v1/equity/metadata/instruments. Retrying in 4.0s
+2026-01-11 20:20:50,886 - INFO - Fetching instruments from Trading 212
+2026-01-11 20:20:51,146 - WARNING - API call failed on attempt 4: 404 Client Error: Not Found for url: https://live.trading212.com/api/v1/equity/metadata/instruments. Retrying in 8.0s
+2026-01-11 20:22:45,204 - INFO - Fetching instruments from Trading 212
+2026-01-11 20:22:45,460 - WARNING - API call failed on attempt 1: 401 Client Error: Unauthorized for url: https://live.trading212.com/api/v0/equity/metadata/instruments. Retrying in 1.0s
+2026-01-11 20:22:46,461 - INFO - Fetching instruments from Trading 212
+2026-01-11 20:22:46,717 - WARNING - API call failed on attempt 2: 401 Client Error: Unauthorized for url: https://live.trading212.com/api/v0/equity/metadata/instruments. Retrying in 2.0s
+2026-01-11 20:22:48,718 - INFO - Fetching instruments from Trading 212
+2026-01-11 20:22:49,003 - WARNING - API call failed on attempt 3: 401 Client Error: Unauthorized for url: https://live.trading212.com/api/v0/equity/metadata/instruments. Retrying in 4.0s
