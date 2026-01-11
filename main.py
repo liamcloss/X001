@@ -1,4 +1,4 @@
-import logging, os
+import logging, os, sys
 from engine.t212_client import Trading212Client
 from engine.scanner import AlphaScanner
 from engine.persistence import DatabaseManager
@@ -13,10 +13,14 @@ for folder in ['logs', 'data']:
 # --------------------------------------------
 
 # Now your logging config will work without crashing
+LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
 logging.basicConfig(
     level=logging.INFO,
-    filename="logs/pipeline.log",
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    format=LOG_FORMAT,
+    handlers=[
+        logging.FileHandler("logs/pipeline.log"),
+        logging.StreamHandler(sys.stdout),
+    ],
 )
 
 def main():
@@ -46,9 +50,10 @@ def main():
             
             time.sleep(2) # Protect against YFinance IP block
 
-    except Exception as e:
-        logging.error(f"FATAL ERROR: {e}")
+    except Exception:
+        logging.exception("FATAL ERROR")
         # Send one-off Telegram error if needed
+        raise
 
 if __name__ == "__main__":
     main()
