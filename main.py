@@ -1,9 +1,19 @@
-import logging, os, sys
+import logging
+import os
+import sys
+import time
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+ROOT = Path(__file__).resolve().parent
+ENV_FILE = ROOT / ".env"
+load_dotenv(ENV_FILE)
+
 from engine.t212_client import Trading212Client
 from engine.scanner import AlphaScanner
 from engine.persistence import DatabaseManager
 from engine.notifier import Notifier
-import time
 
 # --- ADD THIS BLOCK TO THE TOP OF main.py ---
 # Ensure necessary directories exist
