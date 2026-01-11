@@ -84,7 +84,10 @@ class Trading212Client:
         self.api_key = os.getenv("T212_API_KEY")
         self.trading_secret = os.getenv("T212_TRADING_SECRET")
         if not self.api_key or not self.trading_secret:
-            raise ValueError("Missing Trading 212 API credentials")
+            raise ValueError(
+                "Missing Trading 212 API credentials. "
+                "Set T212_API_KEY and T212_TRADING_SECRET in your environment."
+            )
 
     def _headers(self) -> Dict[str, str]:
         """Build API headers for Trading 212."""
