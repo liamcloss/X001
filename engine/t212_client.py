@@ -82,7 +82,7 @@ class Trading212Client:
     """Client for Trading 212 universe ingestion."""
 
     def __init__(self) -> None:
-        self.base_url = "https://live.trading212.com/api/v1"
+        self.base_url = "https://live.trading212.com/api/v0"
         self.api_key = os.getenv("T212_API_KEY")
         self.trading_secret = os.getenv("T212_TRADING_SECRET")
         if not self.api_key or not self.trading_secret:
@@ -269,4 +269,55 @@ class Trading212Client:
             LOGGER.warning(
                 "Universe filter returned 0 instruments; cache not updated."
             )
+        return filtered
+
+    def _cache_valid(self, cache_path: Path, max_age_days: int) -> bool:
+        if not cache_path.exists():
+            return False
+        modified_time = datetime.fromtimestamp(cache_path.stat().st_mtime)
+        return datetime.now() - modified_time < timedelta(days=max_age_days)
+
+    def _load_cached_universe(self, cache_path: Path) -> List[Instrument]:
+        with cache_path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        return [
+            Instrument(
+                ticker=item["ticker"],
+                name=item["name"],
+                exchange=item["exchange"],
+                instrument_type=item.get("instrument_type", "EQUITY"),
+            )
+            for item in payload
+        ]
+
+    def _save_cached_universe(self, cache_path: Path, instruments: List[Instrument]) -> None:
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = [
+            {
+                "ticker": inst.ticker,
+                "name": inst.name,
+                "exchange": inst.exchange,
+                "instrument_type": inst.instrument_type,
+            }
+            for inst in instruments
+        ]
+        with cache_path.open("w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2)
+
+    def get_universe(
+        self,
+        cache_path: str = "data/universe.json",
+        max_age_days: int = 7,
+    ) -> List[Instrument]:
+        """Return the cached universe, refreshing from the API when stale."""
+
+        cache_file = Path(cache_path)
+        if self._cache_valid(cache_file, max_age_days):
+            LOGGER.info("Loading cached universe from %s", cache_file)
+            return self._load_cached_universe(cache_file)
+
+        LOGGER.info("Refreshing universe cache from Trading 212")
+        raw_instruments = self.fetch_instruments()
+        filtered = self.filter_instruments(raw_instruments)
+        self._save_cached_universe(cache_file, filtered)
         return filtered

@@ -5,3 +5,4 @@ scanner.log
 scanner_runtime.log
 crash_report.log
 data/*.db
+/logs/
