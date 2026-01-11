@@ -6,6 +6,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass
+import base64
 from typing import Any, Dict, Iterable, List
 from pathlib import Path
 
@@ -30,6 +31,10 @@ class RetryError(Exception):
     """Raised when retry attempts are exhausted."""
 
 
+class NonRetryableError(Exception):
+    """Raised when retries should not be attempted."""
+
+
 def retry_with_backoff(max_attempts: int = 5, base_delay: float = 1.0) -> Any:
     """Retry a function with exponential backoff.
 
@@ -47,6 +52,8 @@ def retry_with_backoff(max_attempts: int = 5, base_delay: float = 1.0) -> Any:
             while True:
                 try:
                     return func(*args, **kwargs)
+                except NonRetryableError:
+                    raise
                 except Exception as exc:  # noqa: BLE001 - required for resilience
                     if attempt >= max_attempts:
                         LOGGER.exception("API call failed after %s attempts", attempt)
@@ -92,9 +99,12 @@ class Trading212Client:
     def _headers(self) -> Dict[str, str]:
         """Build API headers for Trading 212."""
 
+        credentials = f"{self.api_key}:{self.trading_secret}"
+        encoded_credentials = base64.b64encode(credentials.encode("utf-8")).decode(
+            "utf-8"
+        )
         return {
-            "Authorization": f"Bearer {self.api_key}",
-            "Trading-212-API-Key": self.trading_secret,
+            "Authorization": f"Basic {encoded_credentials}",
             "Accept": "application/json",
         }
 
@@ -105,6 +115,11 @@ class Trading212Client:
         url = f"{self.base_url}/equity/metadata/instruments"
         LOGGER.info("Fetching instruments from Trading 212")
         response = requests.get(url, headers=self._headers(), timeout=30)
+        if response.status_code == 401:
+            raise NonRetryableError(
+                "Trading 212 API unauthorized. "
+                "Check T212_API_KEY and T212_TRADING_SECRET."
+            )
         response.raise_for_status()
         return response.json()
 
