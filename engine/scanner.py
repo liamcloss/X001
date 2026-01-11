@@ -1,7 +1,7 @@
 import yfinance as yf
 import pandas as pd
 import numpy as np
-import time, datetime, timezone
+import time
 
 class AlphaScanner:
     def __init__(self, target_upside=0.25):
@@ -23,21 +23,6 @@ class AlphaScanner:
         ranges = pd.concat([high_low, high_close, low_close], axis=1)
         true_range = np.max(ranges, axis=1)
         return true_range.rolling(window=window).mean()
-
-    def was_alerted_recently(self, ticker, days=21):
-        """
-        Checks if we've already signaled this ticker in the last 3 weeks.
-        3 weeks (21 days) matches your 3-4 week swing trade window.
-        """
-        # If we alerted on this ticker recently, we don't want to see it again
-        # until the typical swing trade duration has passed.
-        since = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
-        with sqlite3.connect(self.db_path) as conn:
-            res = conn.execute(
-                "SELECT 1 FROM signals WHERE ticker = ? AND date > ?",
-                (ticker, since)
-            ).fetchone()
-            return res is not None
 
     def scan_ticker(self, ticker):
         try:
